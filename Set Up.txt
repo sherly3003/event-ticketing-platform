@@ -1,0 +1,36 @@
+# ticket_contract.py
+from pyteal import *
+
+# Define global state
+# The global state will include the number of tickets available
+num_tickets = App.localPut(Int(0), Int(1))
+
+# Define the logic of the smart contract
+def approval_program():
+    # Check if the transaction is of type "Asset Transfer" and is from a valid sender
+    program = Seq([
+        If(
+            And(
+                Txn.type() == TxnType.AssetTransfer,
+                Txn.sender() == Global.creator_address()
+            ),
+            Approve(),
+            Reject()
+        ),
+    ])
+    return program
+
+def clear_state_program():
+    # If anyone tries to clear the state, reject it
+    return Reject()
+
+# Set the approval and clear state programs for the smart contract
+compiled_contract = compileTeal(approval_program(), mode=Mode.Application)
+compiled_clear = compileTeal(clear_state_program(), mode=Mode.Application)
+
+# Save these compiled programs as part of the contract deployment
+with open("ticket_contract.teal", "w") as f:
+    f.write(compiled_contract)
+
+with open("ticket_contract_clear.teal", "w") as f:
+    f.write(compiled_clear)
